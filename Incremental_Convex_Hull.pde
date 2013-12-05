@@ -1,8 +1,5 @@
+//a whole bunch of things that need to be declared or initialized before we start
 import controlP5.*;
-import peasy.*;
-PeasyCam cam;
-PGraphics3D g3;
-PMatrix3D currCameraMatrix;
 ControlP5 cp5;
 int sequenceNum = 0;
 ConvexHull convexHull = new ConvexHull();
@@ -22,6 +19,8 @@ Button addPointButton,initializeHullButton;
 Group mainControls, initialControls;
 Textlabel guideText;
 boolean lockVisual = true;
+
+
 /////////////
 // camera position and focus variables
 PVector camP = new PVector(0, 1200, 700); // camera position
@@ -37,12 +36,12 @@ float moveSpeed = 10;
 ///////////////////////
 public void setup(){
   size(1200,700,P3D);
-  angleX = 0;
+  angleX = 0;  //initial angles for the display
   angleY = -0.1;
   angleZ = -0.8;
   strokeWeight(1);
   hint(ENABLE_NATIVE_FONTS);
-  //////////////////////
+  /////////these settings will be used for the camera//////////
   scaleY = PI/height;
   scaleX = 2*PI/width;
   camDir = PI/3;
@@ -53,6 +52,7 @@ public void setup(){
   camF_rel = setVector(camDir, camElev);
   /////////////////////
   cp5 = new ControlP5(this);
+  //create the GUI
   mainControls = cp5.addGroup("Controls");
   initialControls = cp5.addGroup("initialControls");
   cp5.addButton("NEXT").setSize(200,19).setPosition(25,675).setGroup(mainControls);
@@ -63,8 +63,6 @@ public void setup(){
   cp5.addButton("RotateNegativeX").setSize(98,38).setPosition(450,655).setGroup(mainControls);
   cp5.addButton("RotatePositiveZ").setSize(98,38).setPosition(650,615).setGroup(mainControls);
   cp5.addButton("RotateNegativeZ").setSize(98,38).setPosition(650,655).setGroup(mainControls);
-  cp5.addButton("PanRight").setSize(98,38).setPosition(850,615).setGroup(mainControls);
-  cp5.addButton("PanLeft").setSize(98,38).setPosition(750,615).setGroup(mainControls);
   cp5.addButton("ClearHull").setSize(150,38).setPosition(250,655).setGroup(mainControls).setColorBackground(color(255,0,0));
   textX = cp5.addTextfield("X").setSize(30,20).setPosition(50,600).setGroup(mainControls);
   textY = cp5.addTextfield("Y").setSize(30,20).setPosition(100,600).setGroup(mainControls);
@@ -106,18 +104,16 @@ public void setup(){
 }
 public void drawNewHull(){
   pushMatrix();
-  //camera(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ);
   stroke(10);
   background(206,206,206);
   MouseX = constrain(mouseX, 0, width);
   MouseY = constrain(mouseY, 0, height);
   setCamera();
   camera(camP.x, camP.y, camP.z, camF_abs.x, camF_abs.y, camF_abs.z, 0, 0, -1);
-  //translate(200, height/2, 140);
   rotateY(angleY);
   rotateX(angleX);
   rotateZ(angleZ);
-  //noFill();
+  //loop through and check for updated eges, and highlight them
   for(int i =0;i<convexHull.updateList.size();i++){
     Edge e =convexHull.updateList.get(i);
     stroke(157,57,153);
@@ -127,29 +123,31 @@ public void drawNewHull(){
     stroke(10);
     strokeWeight(1);
   }
+  //loop through the faces
   for(int i = 0; i<convexHull.faceList.size();i++){
     fill(255,255,255);
     Face f = convexHull.faceList.get(i);
-    if(highlightFaces==true){
+    if(highlightFaces==true){//if the face is set to be highlighted, highlight it
       if(f.visible==true){
         fill(200,200,100);
       }
     }
     if(f.newFace==true){
-      fill(54,234,5);
+      fill(54,234,5);  //highlight new faces
       //f.newFace = false;
     }
-    if(f.selected==true){
+    if(f.selected==true){//if its selected, highlight it
       fill(25,25,200);
       f.selected = false;
     }
-    beginShape();
+    beginShape();//draw the triangles
         vertex(f.v1.x, f.v1.y, f.v1.z);
         vertex(f.v2.x, f.v2.y, f.v2.z);
         vertex(f.v3.x, f.v3.y, f.v3.z);
     endShape();
-    line(f.v1.x, f.v1.y, f.v1.z, f.v3.x, f.v3.y, f.v3.z);
+    line(f.v1.x, f.v1.y, f.v1.z, f.v3.x, f.v3.y, f.v3.z);//for some reason Processing doesn't print this edge automatically
   }
+  //now check the edges and highlight the selected ones
   for(int i =0; i<convexHull.edgeList.size();i++){
       Edge e = convexHull.edgeList.get(i);
       if(e.selected==true){
@@ -230,7 +228,7 @@ public class Face{
     this.v3 = ver3;
   }
   public Face(Vertex ver1, Vertex ver2, Vertex ver3, boolean b){
-    this.v1 = ver1;
+    this.v1 = ver1;    //set all the dependencies, the boolean is a dummy parameter used to differentiate between the two constructors with otherwise identical signatures
     this.v2 = ver2;
     this.v3 = ver3;
     Edge edge1 = new Edge(v1,v2);
@@ -247,6 +245,7 @@ public class Face{
   }
 }
 public class ConvexHull{
+  //the convex hull itself is merely a couple of arraylists
   ArrayList<Edge> updateList;
   ArrayList<Face> visibleFacesList;
   ArrayList<Edge> deletedEdgesList;
@@ -254,6 +253,7 @@ public class ConvexHull{
   ArrayList<Edge> edgeList;
   ArrayList<Face> faceList;
   public ConvexHull(){
+    //constructor just initializes the edges
     updateList = new ArrayList<Edge>();
     visibleFacesList = new ArrayList<Face>();
     deletedEdgesList = new ArrayList<Edge>();
@@ -262,6 +262,7 @@ public class ConvexHull{
     faceList = new ArrayList<Face>();
   }
   public void initializeHull(Vertex v1, Vertex v2, Vertex v3, Vertex v4){
+    //method to create a simple tetrahedron hull, dependencies are hardcoded to ensure no errors at the very start
     int cx = (v1.x+v2.x+v3.x+v4.x)/4;
     int cy = (v1.y+v2.y+v3.y+v4.y)/4;
     int cz = (v1.z+v2.z+v3.z+v4.z)/4;
@@ -290,6 +291,7 @@ public class ConvexHull{
     centerY = centroid.y;
     centerZ = centroid.z;
     System.out.println("Cetroid: "+centroid.x+","+centroid.y+","+centroid.z);
+    //update the chart of faces and edges
       for (int i=0;i<convexHull.edgeList.size();i++) {
         Edge e = convexHull.edgeList.get(i);
         ListBoxItem lbi = hullChart.addItem(e.name+
@@ -313,7 +315,7 @@ public class ConvexHull{
   public Face addNewFace(Vertex v1, Vertex v2, Vertex v3){
     Face f2 = new Face(v1,v2,v3,true);
     for(int i =0; i<edgeList.size();i++){
-      if(edgeList.get(i).equalz(f2.e1)){
+      if(edgeList.get(i).equalz(f2.e1)){  //if the edge is already in the list,use it and just update its adjacent faces
         f2.e1 = edgeList.get(i);
         f2.e1.update = false;
         f2.e1.f2 = edgeList.get(i).f1;  
@@ -330,7 +332,7 @@ public class ConvexHull{
         edgeList.get(i).f2 = f2;
       }
     }
-    if(f2.e1.update==true){
+    if(f2.e1.update==true){  //if the edges are to be updated, add them to the edge list
         edgeList.add(f2.e1);
         f2.e1.name = "edge"+edgeCounter;
         edgeCounter++;
@@ -349,39 +351,41 @@ public class ConvexHull{
         f2.e3.update = false;
       }
       f2.name = "face"+faceCounter;
-      faceList.add(f2);
+      faceList.add(f2);//finally add the new face to the facelist
       faceCounter++;
       return f2;
   }
-  public void outputHull(){
+  public void outputHull(){ //method to print out the edges and adjacent faces of the convex hull to the console
     for(int i =0;i<edgeList.size();i++){
       System.out.println("Edge: "+edgeList.get(i).identifier+" Face: "+edgeList.get(i).f1.name+" AdjFace: "+edgeList.get(i).f2.name);
     }
   }
+  //method which checks if point is in or out of convex hull
   public boolean addNewPoint(Vertex v1){
     int numVisibleFaces=0;
     System.out.println("size of the face list: "+faceList.size());
-    for(int i =0;i<faceList.size();i++){
-      System.out.println("======="+faceList.get(i).name+"============");
+    for(int i =0;i<faceList.size();i++){//check each faces visibility with a signed volume test
+      System.out.println("======="+faceList.get(i).name+"============"); 
       if(volumeSign(faceList.get(i),v1)<0){
         System.out.println(faceList.get(i).name+" is visible");
         faceList.get(i).visible = true;
-        visibleFacesList.add(faceList.get(i));
-        numVisibleFaces++;
+        visibleFacesList.add(faceList.get(i));  //if the face is visible, mark it and put it in the visible faces list
+        numVisibleFaces++; 
       }else{
         System.out.println(faceList.get(i).name+" is not visible");
         faceList.get(i).visible = false;
       }
     }
     System.out.println("print out the faces volumes");
-    if(numVisibleFaces==0){
+    if(numVisibleFaces==0){  //if there are no visible faces, the point is already in there
       System.out.println("Point is inside the hull");
       return false;
     }else{
-      updateHull(v1);
+      updateHull(v1);  //if the point is not already in the hull, proceed to update the hull with the new point
     }
     return true;
   }
+  //method to determine the edges that should remain
   public void updateHull(Vertex v1){
     System.out.println("current edge list size: "+edgeList.size());
     for(int i = 0;i<edgeList.size();i++){
@@ -389,6 +393,7 @@ public class ConvexHull{
       System.out.println("Next edge "+edgeList.get(i).f2.name);
       boolean a = edgeList.get(i).f1.visible;
       boolean b = edgeList.get(i).f2.visible;
+      //check edge visibility and adjacent faces to see which edges must remain in the hull and which should go
       if(a==true && b==true){
         System.out.println("throw out this edge");
         edgeList.get(i).deleted = true;
@@ -406,25 +411,24 @@ public class ConvexHull{
         System.out.println("edge is totally invisible");
       }
     }
-    System.out.println("current update list size " +updateList.size());
-    //deleteOldStuff();
-    //makeConeFaces(v1);
   }
+  //method to get rid of all the stuff from the old hull
   public void deleteOldStuff(){
     for(int i =0;i<visibleFacesList.size();i++){
       System.out.println("visible faces: "+visibleFacesList.get(i).name);
     }
     for(int i =0;i<visibleFacesList.size();i++){
       System.out.println("get RID OF "+visibleFacesList.get(i).name);
-      faceList.remove(visibleFacesList.get(i));
+      faceList.remove(visibleFacesList.get(i));//get rid of any visible faces
     }
-    visibleFacesList.clear();
+    visibleFacesList.clear();  //restart the visible faces list
     for(int j=0;j<deletedEdgesList.size();j++){
       System.out.println("Get RID OF EDGE with "+deletedEdgesList.get(j).f1.name+" and "+deletedEdgesList.get(j).f2.name);
-      edgeList.remove(deletedEdgesList.get(j));
+      edgeList.remove(deletedEdgesList.get(j));  //get rid of edges marked as deleted
     }
-    deletedEdgesList.clear();
+    deletedEdgesList.clear();  //restart the list
   }
+  //simple method to create a face from each edge that we keep to the new point
   public void makeConeFaces(Vertex v1){
     for(int i = 0;i<updateList.size();i++){
       Face f =addNewFace(updateList.get(i).v1,updateList.get(i).v2, v1);
@@ -432,6 +436,7 @@ public class ConvexHull{
     }
     updateList.clear();
   }
+  //kill everything in the hull and restart
   public void clearHull(){
     edgeList.clear();
     faceList.clear();
@@ -445,19 +450,20 @@ public class ConvexHull{
  
   }
 }
-
+//kill everything and reset the counters
 public void clearAll(){
   convexHull.clearHull();
   faceCounter = 1;
   edgeCounter = 1;
 }
-
+//a 3d orientation test to check if a given faces points are "counterclockwise" with respect to the interior of the hull. The method
+//creates a copy of the face for safety purposes, does not actually mess with the face itself
 public Face orientCCW(Face f){
   System.out.println("centroid x: "+centroid.x+" centroid y: "+centroid.y+" centroid z: "+centroid.z);
   Face newFace = new Face(f.v1,f.v2,f.v3,true);
   float vol;
   float a, b, c, d, e, f1, g, h, i;
-  
+  //calcualte the determinant of the face's edges with respect to the centroid of the hull
   a = f.v1.x - centroid.x;
   b = f.v1.y - centroid.y;
   c = f.v1.z - centroid.z;
@@ -466,8 +472,8 @@ public Face orientCCW(Face f){
   f1 = f.v2.z - centroid.z;
   g = f.v3.x - centroid.x;
   h = f.v3.y - centroid.y;
-  i = f.v3.z - centroid.z;
-
+  i = f.v3.z - centroid.z; 
+//note that the volume computation is NOT identical to the computation performed for volumeSign
   vol = a*(e*i - f1*h)
        -b*(d*i - f1*g)
        +c*(d*h - e*g);
@@ -475,6 +481,7 @@ public Face orientCCW(Face f){
   if(vol>0.5){
     return newFace;
   }else if(vol<-0.5){
+    //if the volume is negative, the orientation is clockwise, reorder the vertices to fix it
     System.out.println("reorient the vertices");
     Vertex tempVert = newFace.v1;
     newFace.v1 = newFace.v3;
@@ -510,6 +517,7 @@ int volumeSign(Face f, Vertex p){
   if(vol>0.5){
     return 1;
   }else if(vol<-0.5){
+    //if the volume is negative then the face is visible
     return -1;
   }else{
     return 0;
@@ -517,24 +525,14 @@ int volumeSign(Face f, Vertex p){
 }
 public void draw(){
 }
-/*public void keyPressed(){
-  if(key == CODED){
-    if(keyCode==RIGHT){
-      RotateRight();
-    }else if(keyCode==LEFT){
-      RotateLeft();
-    }else if(keyCode==UP){
-      RotateUp(); 
-    }else if(keyCode==DOWN){
-      RotateDown();
-    }
-  } 
-}*/
+
 /*GUI STUFF*/
+
+//the method called when you click "Next"
 public void NEXT(){
   if(nextActive == true){
     System.out.println("you clicked the button!");
-    if(sequenceNum==0){
+    if(sequenceNum==0){  //run through a list of instructions, here i just use an integer to keep track of what step we're on
       System.out.println("highlight the faces");
       highlightFaces=true;
       drawNewHull();
@@ -560,6 +558,7 @@ public void NEXT(){
       }
       hullChart.clear();
       faceChart.clear();
+      //update the edge and face lists on the screen
       for (int i=0;i<convexHull.edgeList.size();i++) {
         Edge e = convexHull.edgeList.get(i);
         ListBoxItem lbi = hullChart.addItem(e.name+
@@ -589,6 +588,7 @@ public void NEXT(){
     }
   }
 }
+//called when we click "add point"
 public void ADD_POINT(){
   String xStr = cp5.get(Textfield.class,"X").getText();
   String yStr = cp5.get(Textfield.class,"Y").getText();
@@ -610,6 +610,7 @@ public void ADD_POINT(){
   textX.clear();
   textY.clear();
   textZ.clear();
+  //get these fields out of the way while we watch the hull being created
   textZ.setVisible(false);
   textX.setVisible(false);
   textY.setVisible(false);
@@ -617,6 +618,7 @@ public void ADD_POINT(){
   guideText.setPosition(50,50);
   guideText.setText("We draw lines to show which faces are visible to the new point");
 }
+/*all the 3d space traversal methods*/
 public void RotatePositiveY(){
   angleY = angleY+0.15;
   drawNewHull();
@@ -649,6 +651,7 @@ public void PanLeft(){
   centerX = centerX-10;
   drawNewHull();
 }
+//a bit confusing, but this is the method that is called when we click the "clear" button. It calls the other clear methods.
 public void ClearHull(){
   clearAll();
   hullChart.clear();
@@ -660,8 +663,10 @@ public void ClearHull(){
   drawNewHull();
   guideText.setPosition(300,250);
 }
+//called when we click the "initialize" button
 public void initialize(){
   System.out.println("initialize the hull");
+  //parse the fields and get those coordinates
   int xC = Integer.parseInt(x1.getText());
   int yC = Integer.parseInt(y1.getText());
   int zC = Integer.parseInt(z1.getText());  
@@ -682,12 +687,13 @@ public void initialize(){
   x1.clear(); x2.clear(); x3.clear(); x4.clear();
   y1.clear(); y2.clear(); y3.clear(); y4.clear();
   z1.clear(); z2.clear(); z3.clear(); z4.clear();
-  mainControls.setVisible(true);
+  mainControls.setVisible(true);//clear this screen and go to the next
   initialControls.setVisible(false);
   guideText.setPosition(25,25).setFont(createFont("Verdana",12));
   guideText.setText("Add a new point to grow the hull");
   drawNewHull();
 }
+//the controller that says what happens when we click on the edge or face list
 void controlEvent(ControlEvent theEvent) {
   if (theEvent.isGroup() && theEvent.name().equals("faces")) {
     // an event from a group e.g. scrollList
@@ -708,7 +714,7 @@ void controlEvent(ControlEvent theEvent) {
     drawNewHull();
   }
 }
-/*Camera*/
+/*Camera stuff, this is all logic used to traverse 3d space*/
 void setCamera() {
   camF_rel = setVector(camDir, camElev);
   if (direction >= 1 & direction <= 4) moveCamera(moveSpeed);
@@ -774,7 +780,7 @@ void elevCamera (float speed) {
   }
 }
  
- 
+//method that tells what happens when you press keys 
 void keyPressed() {
   if(keyCode == 38 | key == 'w'){ direction = 1;
     drawNewHull();  
